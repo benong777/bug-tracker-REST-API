@@ -10,15 +10,6 @@ CREATE TABLE `BugTrackerDB`.`Users` (
 SELECT * FROM BugTrackerDB.Users;
 
 
-CREATE TABLE `BugTrackerDB`.`Report` (
-  `idReport` INT NOT NULL AUTO_INCREMENT,
-  `idUser` INT,
-  `idProject` INT,
-  `idBug` INT,
-  `note` VARCHAR(255) NULL,
-  PRIMARY KEY (`idReport`));
-
-
 CREATE TABLE `BugTrackerDB`.`Bug` (
   `idBug` INT NOT NULL AUTO_INCREMENT,
   `idProject` INT NULL,
@@ -27,6 +18,7 @@ CREATE TABLE `BugTrackerDB`.`Bug` (
   `bugDescription` VARCHAR(255) NULL,
   `assignedTo` VARCHAR(45) NULL,
   `bugDate` DATETIME NULL,
+  `deletedFlag` BIT(1) NULL,
   PRIMARY KEY (`idBug`));
 
 CREATE TABLE `BugTrackerDB`.`Comments` (
@@ -36,4 +28,5 @@ CREATE TABLE `BugTrackerDB`.`Comments` (
   `idUser` VARCHAR(45) NULL,
   `notes` VARCHAR(255) NULL,
   `date` DATETIME NULL,
+  `deletedFlag` BIT(1) NULL,
   PRIMARY KEY (`idComments`));

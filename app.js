@@ -115,24 +115,17 @@ app.post('/register', async function(req, res) {
 });
 
 
-// //-- GET Project
-// app.get('/project', async (req, res) => {
-//   const [data] = await global.db.query(`SELECT p.idProduct, p.pName, p.pDescription, b.brandName 
-//                                             FROM ProductsDB.Product p
-//                                             LEFT JOIN Brand b ON p.idBrand=b.idBrand`);
-//   res.send({ message: "GET products - success!",
-//              data });
-// });
-
 //-- ADD a Project
 app.post('/project', authenticateJWT, async function(req, res) {
   const user = req.user;
   // console.log("User: ", user);
   const { projectName } = req.body;
-  const [data] = await global.db.query(`INSERT INTO Project(projectName, 
+  const [data] = await global.db.query(`INSERT INTO Project(
+                                                            projectName, 
                                                             projectDate, 
                                                             idUser, 
-                                                            deletedFlag)
+                                                            deletedFlag
+                                                           )
                                               VALUES(?, NOW(), ?, 0)`,
                                         [projectName, user.idUser]
   );
@@ -145,10 +138,8 @@ app.put('/project', authenticateJWT, async function(req, res) {
   const user = req.user;
   const { idProject, projectName } = req.body;
   const [data] = await global.db.query(`UPDATE Project SET projectName=?, 
-                                                           projectDate=NOW(),
-                                                           idUser=?,
-                                                           deletedFlag=0
-                                                       WHERE idProject=?`,
+                                                           projectDate=NOW()
+                                                WHERE idUser=? AND idProject=? AND deletedFlag=0`,
                                         [ 
                                           projectName, 
                                           user.idUser, 
@@ -186,21 +177,182 @@ app.delete('/project', authenticateJWT, async function(req, res) {
 // });
 
  
-// //-- ADD a Bug
-// app.post('/bug', authenticateJWT, async function(req, res) {
+//-- ADD a Bug
+app.post('/bug', authenticateJWT, async function(req, res) {
+  const user = req.user;
+  const { 
+          idProject, 
+          bugTitle, 
+          bugDescription, 
+          assignedTo
+        } = req.body;
+  const [data] = await global.db.query(`INSERT INTO Bug(  
+                                                          idUser,
+                                                          idProject, 
+                                                          bugTitle, 
+                                                          bugDescription, 
+                                                          assignedTo, 
+                                                          bugDate,
+                                                          deletedFlag
+                                                       )
+                                              VALUES(?, ?, ?, ?, ?, NOW(), 0)`,
+                                        [
+                                          user.idUser,
+                                          idProject, 
+                                          bugTitle, 
+                                          bugDescription, 
+                                          assignedTo
+                                        ]
+  );
+  res.send({ message: "Success! New bug has been added!",
+             data });
+});
+
+//-- UPDATE Bug
+app.put('/bug', authenticateJWT, async function(req, res) {
+  const user = req.user;
+  console.log('User: ', user);
+  const { idBug, 
+          bugTitle, 
+          bugDescription, 
+          assignedTo } = req.body;
+  const [data] = await global.db.query(`UPDATE Bug SET bugTitle=?,
+                                                       bugDescription=?,
+                                                       assignedTo=?,
+                                                       bugDate=NOW()
+                                                WHERE idUser=? AND
+                                                      idBug=?  AND
+                                                      deletedFlag=0`,
+                                        [ 
+                                          bugTitle, 
+                                          bugDescription,
+                                          assignedTo,
+                                          user.idUser, 
+                                          idBug
+                                        ]
+  );
+  res.send({ message: "Success! Bug has been updated.",
+             data });
+});
+
+//-- "DELETE" Bug - assert deletedFlag
+app.delete('/bug', authenticateJWT, async function(req, res) {
+  const user = req.user;
+  const { idBug } = req.body;
+  const [data] = await global.db.query(`UPDATE Bug SET bugDate=NOW(),
+                                                       deletedFlag=1
+                                                       WHERE idUser=? AND idBug=?`,
+                                        [ 
+                                          user.idUser, 
+                                          idBug
+                                        ]
+  );
+  res.send({ message: "Success! Bug has been deleted.",
+             data });
+});
+// //-- DELETE Bug - Irreversible
+// app.delete('/bug', authenticateJWT, async (req, res) => {
 //   const user = req.user;
-//   const { projectName } = req.body;
-//   const [data] = await global.db.query(`INSERT INTO Project(projectName, 
-//                                                             projectDate, 
-//                                                             idUser, 
-//                                                             deletedFlag)
-//                                               VALUES(?, NOW(), ?, 0)`,
-//                                         [projectName, user.idUser]
-//   );
-//   res.send({ message: "Success! Project has been added!",
+//   console.log('idUser: ', user);
+//   const { idBug } = req.body;
+//   const [data] = await global.db.query(`DELETE FROM Bug WHERE idUser=? AND idBug=?`,
+//                                         [user.idUser, idBug]);
+//   res.send({ message: "Success! Bug has been deleted",
 //              data });
 // });
 
+
+//-- ADD a comment
+app.post('/comment', authenticateJWT, async function(req, res) {
+  const user = req.user;
+  // console.log("User: ", user);
+  const { idProject, 
+          idBug, 
+          notes } = req.body;
+  const [data] = await global.db.query(`INSERT INTO Comments(
+                                                            idUser,
+                                                            idProject, 
+                                                            idBug, 
+                                                            notes, 
+                                                            date,
+                                                            deletedFlag
+                                                           )
+                                              VALUES(?, ?, ?, ?, NOW(), 0)`,
+                                        [
+                                          user.idUser, 
+                                          idProject,
+                                          idBug,
+                                          notes
+                                        ]
+  );
+  res.send({ message: "Success! Comment has been added!",
+             data });
+});
+
+//-- UPDATE Comment
+app.put('/comment', authenticateJWT, async function(req, res) {
+  const user = req.user;
+  // console.log('User: ', user);
+  const { idProject,
+          notes, 
+          idBug } = req.body;
+  const [data] = await global.db.query(`UPDATE Comments SET idProject=?,
+                                                       notes=?,
+                                                       date=NOW()
+                                                WHERE idUser=? AND
+                                                      idBug=?  AND
+                                                      deletedFlag=0`,
+                                        [ 
+                                          idProject,
+                                          notes, 
+                                          user.idUser,
+                                          idBug
+                                        ]
+  );
+  res.send({ message: "Success! Comment has been updated.",
+             data });
+});
+
+//-- "DELETE" Comment - assert deletedFlag
+app.delete('/comment', authenticateJWT, async function(req, res) {
+  const user = req.user;
+  const { idComment } = req.body;
+  const [data] = await global.db.query(`UPDATE Comments SET date=NOW(),
+                                                            deletedFlag=1
+                                                WHERE idUser=? AND idComment=?`,
+                                        [ 
+                                          user.idUser, 
+                                          idComment
+                                        ]
+  );
+  res.send({ message: "Success! Comment has been deleted.",
+             data });
+});
+// //-- DELETE Bug - Irreversible
+// app.delete('/comment', authenticateJWT, async (req, res) => {
+//   const user = req.user;
+//   // console.log('idUser: ', user);
+//   const { idComment } = req.body;
+//   const [data] = await global.db.query(`DELETE FROM Comments WHERE idUser=? AND idComment=?`,
+//                                         [user.idUser, idComment]);
+//   res.send({ message: "Success! Comment has been deleted",
+//              data });
+// });
+
+//-- GET all comments from a bug report
+app.get('/comment', authenticateJWT, async (req, res) => {
+  const user = req.user;
+  const { idBug } = req.body;
+  const [data] = await global.db.query(`SELECT idProject, notes, date 
+                                            FROM Comments
+                                            WHERE idUser=? AND idBug=?`,
+                                            [
+                                              user.idUser,
+                                              idBug
+                                            ]);
+  res.send({ message: "GET comments - success!",
+             data });
+});
 
 
 
