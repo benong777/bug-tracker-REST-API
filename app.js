@@ -1,8 +1,17 @@
+//-- Q's
+//-- Proper way to handle user undefined
+
 const express = require('express');
 const jsonwebtoken = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
 const mysql = require('mysql2/promise');
+const cors = require('cors');
 const app = express();
+
+//-- Need CORS if JavaScript (client side) needs to make an HTTP request
+//-- to an HTTP server with a different origin (scheme, hostname and/or PORT).
+//-- (Ex: localhost:4200 and localhost:3000)
+app.use(cors());
 
 require('dotenv').config();
 const port = process.env.PORT;
@@ -18,16 +27,19 @@ const authenticateJWT = (req, res, next) => {
     if (authHeader) {
         //-- Get the token from the Authorization header (with the "Bearer" removed)
         const token = authHeader.split(' ')[1];
+        if (token === 'null') {
+          return res.status(401).send('Unauthorized user');
+        }
 
         jsonwebtoken.verify(token, JWT_KEY, (error, user) => {
             if (error) {
-              return res.sendStatus(403);
+              return res.sendStatus(403).send('Token error');
             }
             req.user = user;
             next();
         });
     } else {
-      res.sendStatus(401);
+      res.sendStatus(401).send('Unauthorized request');
     }
 };
 
@@ -52,24 +64,34 @@ app.post('/login', async (req, res) => {
     const { email, password } = req.body;
     console.log(email, password);
 
-    //-- Filter user from the users array by username and password
-    const [[user]] = await global.db.query(
-                                  'SELECT * FROM Users WHERE email=?',
-                                  [email]
-    );
+    // try {
+        //-- Filter user from the users array by username and password
+        const [[user]] = await global.db.query(
+                                      'SELECT * FROM Users WHERE email=?',
+                                      [email]
+        );
+        console.log('user: ', user);
+    // } catch (err) {
+    //     console.log('ERROR');
+    //     console.log(err);
+    // }
+
     if (user) {
       console.log("Got user info: ", user);
       bcrypt.compare(password, user.password, function(err, compareResult) {
-        console.log(compareResult);
+        console.log('compareResult: ', compareResult);
         if (compareResult == true) {
           console.log("Password matched");
           //-- Generate an access token
           console.log('idUser: ', user.idUser);
           console.log('email: ', user.email);
           const token = jsonwebtoken.sign({ idUser: user.idUser, email: user.email },
-            JWT_KEY);
+                                          JWT_KEY);
             console.log('token: ', token);
-            res.json({ jwt: token });
+            console.log({token});
+            // res.json({ jwt: token });
+            res.json({ token });
+            // res.send({ token });
         }
         else {
           res.send('Password incorrect');
@@ -176,9 +198,27 @@ app.delete('/project', authenticateJWT, async function(req, res) {
 //              data });
 // });
 
- 
+
+//-- GET bugs
+app.get('/bug', authenticateJWT, async (req, res) => {
+  // const user = req.user;
+  // const { idBug } = req.body;
+  const [data] = await global.db.query(`SELECT  idProject, 
+                                                idUser, 
+                                                bugTitle,
+                                                bugDescription,
+                                                assignedTo, 
+                                                bugDate 
+                                            FROM Bug
+                                            WHERE deletedFlag=0`);
+  res.send({ message: "GET bug - success!",
+             data });
+});
+
 //-- ADD a Bug
-app.post('/bug', authenticateJWT, async function(req, res) {
+// app.post('/bug', authenticateJWT, async function(req, res) {
+app.post('/bug', async function(req, res) {
+
   const user = req.user;
   const { 
           idProject, 
@@ -339,115 +379,44 @@ app.delete('/comment', authenticateJWT, async function(req, res) {
 //              data });
 // });
 
+// //-- GET all comments from a bug report
+// app.get('/comment', authenticateJWT, async (req, res) => {
+//   const user = req.user;
+//   const { idBug } = req.body;
+//   const [data] = await global.db.query(`SELECT idProject, notes, date 
+//                                             FROM Comments
+//                                             WHERE idUser=? AND idBug=?`,
+//                                             [
+//                                               user.idUser,
+//                                               idBug
+//                                             ]);
+//   res.send({ message: "GET comments - success!",
+//              data });
+// });
+
 //-- GET all comments from a bug report
-app.get('/comment', authenticateJWT, async (req, res) => {
-  const user = req.user;
-  const { idBug } = req.body;
+app.get('/comment', async (req, res) => {
+  // const user = req.user;
+  // const { idBug } = req.body;
   const [data] = await global.db.query(`SELECT idProject, notes, date 
-                                            FROM Comments
-                                            WHERE idUser=? AND idBug=?`,
-                                            [
-                                              user.idUser,
-                                              idBug
-                                            ]);
+                                            FROM Comments`);
   res.send({ message: "GET comments - success!",
              data });
 });
 
 
-
-//-- GET Products
-app.get('/product', async (req, res) => {
-  const [data] = await global.db.query(`SELECT p.idProduct, p.pName, p.pDescription, b.brandName 
-                                            FROM ProductsDB.Product p
-                                            LEFT JOIN Brand b ON p.idBrand=b.idBrand`);
-  res.send({ message: "GET products - success!",
-             data });
-});
-
-//-- GET Brands
-app.get('/brand', async (req, res) => {
-  const { idBrand } = req.body;
-  // console.log('idBrand: ', idBrand);
-  const [data] = await global.db.query(`SELECT p.idProduct, p.pName, p.pDescription, b.brandName 
-                                            FROM ProductsDB.Product p
-                                            LEFT JOIN Brand b ON p.idBrand=b.idBrand
-                                            WHERE p.idBrand=?`,
-                                            [idBrand]);
-  res.send({ message: "GET brand - success!", 
-             data });
-});
-
-//-- GET Category
-app.get('/category', async (req, res) => {
-  const { idCategory } = req.body;
-  // console.log('idCategory: ', idCategory);
-  const [data] = await global.db.query(`SELECT p.idProduct, p.pName, p.pDescription, c.nameCategory 
-                                            FROM ProductsDB.Product p
-                                            LEFT JOIN Category c ON p.idCategory=c.idCategory
-                                            WHERE p.idCategory=?`,
-                                            [idCategory]);
-  res.send({ message: "GET category - success!",
-             data });
-});
-
-//-- GET Favorites
-app.get('/favorites', authenticateJWT, async (req, res) => {
-  const user = req.user;
-  console.log('idUser: ', user);
-  const [data] = await global.db.query(`SELECT p.idProduct, p.pName, p.pDescription, fav.idUser, fav.notes 
-                                            FROM ProductsDB.Product p
-                                            LEFT JOIN Favorites fav ON p.idProduct=fav.idProduct
-                                            WHERE fav.idUser=?`,
-                                            [user.idUser]);
-  res.send({ message: "GET favorites - success!",
-             data });
-});
-
-//-- DELETE Favorites
-app.delete('/favorites', authenticateJWT, async (req, res) => {
-  const user = req.user;
-  const { idProduct } = req.body;
-  // console.log('idUser: ', user);
-  const [data] = await global.db.query(`DELETE FROM Favorites WHERE idUser=? AND idProduct=?`,
-                                        [user.idUser, idProduct]);
-  res.send({ message: "Delete favorite item - success!",
-             data });
-});
-
-//-- ADD a Favorite
-app.post('/favorites', authenticateJWT, async function(req, res) {
-    const user = req.user;
-    // console.log("User: ", user);
-    const { idProduct, notes } = req.body;
-    const [data] = await global.db.query(`INSERT INTO Favorites(idUser, idProduct, notes)
-                                                VALUES(?, ?, ?)`,
-                                          [
-                                            user.idUser,
-                                            idProduct,
-                                            notes
-                                          ]
-    );
-    res.send({ message: "ADD favorite - success!",
-               data });
-});
-
-//-- UPDATE a Favorite
-app.put('/favorites', authenticateJWT, async function(req, res) {
-    const user = req.user;
-    console.log("User: ", user);
-    const { idProduct, notes } = req.body;
-    const [data] = await global.db.query(`UPDATE Favorites SET notes = ?
-                                  WHERE idUser=? AND idProduct=?`, 
-                                  [ 
-                                    notes, 
-                                    user.idUser,
-                                    idProduct,
-                                  ]
-    );
-    res.send({ message: "Update favorite item - success!",
-               data });
-});
+// //-- GET Brands
+// app.get('/brand', async (req, res) => {
+//   const { idBrand } = req.body;
+//   // console.log('idBrand: ', idBrand);
+//   const [data] = await global.db.query(`SELECT p.idProduct, p.pName, p.pDescription, b.brandName 
+//                                             FROM ProductsDB.Product p
+//                                             LEFT JOIN Brand b ON p.idBrand=b.idBrand
+//                                             WHERE p.idBrand=?`,
+//                                             [idBrand]);
+//   res.send({ message: "GET brand - success!", 
+//              data });
+// });
 
 
 //-- Listen on PORT
