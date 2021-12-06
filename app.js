@@ -22,7 +22,7 @@ app.use(express.json());
 
 const authenticateJWT = (req, res, next) => {
     const authHeader = req.headers.authorization;
-    // console.log('authHeader: ', authHeader);
+    console.log('authHeader: ', authHeader);
 
     if (authHeader) {
         //-- Get the token from the Authorization header (with the "Bearer" removed)
@@ -30,12 +30,13 @@ const authenticateJWT = (req, res, next) => {
         if (token === 'null') {
           return res.status(401).send('Unauthorized user');
         }
-
+        console.log("Verifying token");
         jsonwebtoken.verify(token, JWT_KEY, (error, user) => {
             if (error) {
               return res.sendStatus(403).send('Token error');
             }
             req.user = user;
+            console.log("Token verified");
             next();
         });
     } else {
@@ -91,7 +92,6 @@ app.post('/login', async (req, res) => {
             console.log({token});
             // res.json({ jwt: token });
             res.json({ token });
-            // res.send({ token });
         }
         else {
           res.send('Password incorrect');
@@ -136,6 +136,16 @@ app.post('/register', async function(req, res) {
     });
 });
 
+//-- GET Projects
+app.get('/project', authenticateJWT, async (req, res) => {
+  // const user = req.user;
+  // const { idProject } = req.body;
+  const [data] = await global.db.query(`SELECT idProject, projectName FROM Project
+                                            WHERE deletedFlag=0
+                                            ORDER BY idProject ASC`);
+  res.json({ message: "GET project - success!",
+             data });
+});
 
 //-- ADD a Project
 app.post('/project', authenticateJWT, async function(req, res) {
@@ -151,8 +161,8 @@ app.post('/project', authenticateJWT, async function(req, res) {
                                               VALUES(?, NOW(), ?, 0)`,
                                         [projectName, user.idUser]
   );
-  res.send({ message: "Success! Project has been added!",
-             data });
+  res.json({ message: "Success! Project has been added!",
+  data });
 });
 
 //-- UPDATE project name
@@ -168,7 +178,7 @@ app.put('/project', authenticateJWT, async function(req, res) {
                                           idProject
                                         ]
   );
-  res.send({ message: "Success! Project has been renamed.",
+  res.json({ message: "Success! Project has been renamed.",
              data });
 });
 
@@ -184,7 +194,7 @@ app.delete('/project', authenticateJWT, async function(req, res) {
                                           idProject
                                         ]
   );
-  res.send({ message: "Success! Project has been deleted.",
+  res.json({ message: "Success! Project has been deleted.",
              data });
 });
 // //-- DELETE Project - Irreversible
@@ -194,24 +204,24 @@ app.delete('/project', authenticateJWT, async function(req, res) {
 //   // console.log('idUser: ', user);
 //   const [data] = await global.db.query(`DELETE FROM Project WHERE idUser=? AND idProject=?`,
 //                                         [user.idUser, idProject]);
-//   res.send({ message: "Success! Project deleted",
+//   res.json({ message: "Success! Project deleted",
 //              data });
 // });
 
 
-//-- GET bugs
 app.get('/bug', authenticateJWT, async (req, res) => {
   // const user = req.user;
   // const { idBug } = req.body;
-  const [data] = await global.db.query(`SELECT  idProject, 
-                                                idUser, 
-                                                bugTitle,
-                                                bugDescription,
-                                                assignedTo, 
-                                                bugDate 
-                                            FROM Bug
-                                            WHERE deletedFlag=0`);
-  res.send({ message: "GET bug - success!",
+  const [data] = await global.db.query(`SELECT  prj.projectName, 
+                                                bg.idUser, 
+                                                bg.bugTitle,
+                                                bg.bugDescription,
+                                                bg.assignedTo, 
+                                                bg.bugDate 
+                                            FROM BugTrackerDB.Bug bg
+                                            LEFT JOIN Project prj ON bg.idProject=prj.idProject
+                                            WHERE bg.deletedFlag=0`);
+  res.json({ message: "GET bug - success!",
              data });
 });
 
@@ -244,7 +254,7 @@ app.post('/bug', async function(req, res) {
                                           assignedTo
                                         ]
   );
-  res.send({ message: "Success! New bug has been added!",
+  res.json({ message: "Success! New bug has been added!",
              data });
 });
 
@@ -271,7 +281,7 @@ app.put('/bug', authenticateJWT, async function(req, res) {
                                           idBug
                                         ]
   );
-  res.send({ message: "Success! Bug has been updated.",
+  res.json({ message: "Success! Bug has been updated.",
              data });
 });
 
@@ -287,7 +297,7 @@ app.delete('/bug', authenticateJWT, async function(req, res) {
                                           idBug
                                         ]
   );
-  res.send({ message: "Success! Bug has been deleted.",
+  res.json({ message: "Success! Bug has been deleted.",
              data });
 });
 // //-- DELETE Bug - Irreversible
@@ -297,7 +307,7 @@ app.delete('/bug', authenticateJWT, async function(req, res) {
 //   const { idBug } = req.body;
 //   const [data] = await global.db.query(`DELETE FROM Bug WHERE idUser=? AND idBug=?`,
 //                                         [user.idUser, idBug]);
-//   res.send({ message: "Success! Bug has been deleted",
+//   res.json({ message: "Success! Bug has been deleted",
 //              data });
 // });
 
@@ -309,6 +319,7 @@ app.post('/comment', authenticateJWT, async function(req, res) {
   const { idProject, 
           idBug, 
           notes } = req.body;
+  // console.log(idProject, idBug, notes);
   const [data] = await global.db.query(`INSERT INTO Comments(
                                                             idUser,
                                                             idProject, 
@@ -325,7 +336,7 @@ app.post('/comment', authenticateJWT, async function(req, res) {
                                           notes
                                         ]
   );
-  res.send({ message: "Success! Comment has been added!",
+  res.json({ message: "Success! Comment has been added!",
              data });
 });
 
@@ -349,7 +360,7 @@ app.put('/comment', authenticateJWT, async function(req, res) {
                                           idBug
                                         ]
   );
-  res.send({ message: "Success! Comment has been updated.",
+  res.json({ message: "Success! Comment has been updated.",
              data });
 });
 
@@ -365,7 +376,7 @@ app.delete('/comment', authenticateJWT, async function(req, res) {
                                           idComment
                                         ]
   );
-  res.send({ message: "Success! Comment has been deleted.",
+  res.json({ message: "Success! Comment has been deleted.",
              data });
 });
 // //-- DELETE Bug - Irreversible
@@ -375,7 +386,7 @@ app.delete('/comment', authenticateJWT, async function(req, res) {
 //   const { idComment } = req.body;
 //   const [data] = await global.db.query(`DELETE FROM Comments WHERE idUser=? AND idComment=?`,
 //                                         [user.idUser, idComment]);
-//   res.send({ message: "Success! Comment has been deleted",
+//   res.json({ message: "Success! Comment has been deleted",
 //              data });
 // });
 
@@ -390,7 +401,7 @@ app.delete('/comment', authenticateJWT, async function(req, res) {
 //                                               user.idUser,
 //                                               idBug
 //                                             ]);
-//   res.send({ message: "GET comments - success!",
+//   res.json({ message: "GET comments - success!",
 //              data });
 // });
 
@@ -400,7 +411,7 @@ app.get('/comment', async (req, res) => {
   // const { idBug } = req.body;
   const [data] = await global.db.query(`SELECT idProject, notes, date 
                                             FROM Comments`);
-  res.send({ message: "GET comments - success!",
+  res.json({ message: "GET comments - success!",
              data });
 });
 
@@ -414,7 +425,7 @@ app.get('/comment', async (req, res) => {
 //                                             LEFT JOIN Brand b ON p.idBrand=b.idBrand
 //                                             WHERE p.idBrand=?`,
 //                                             [idBrand]);
-//   res.send({ message: "GET brand - success!", 
+//   res.json({ message: "GET brand - success!", 
 //              data });
 // });
 
