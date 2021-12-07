@@ -142,7 +142,7 @@ app.get('/project', authenticateJWT, async (req, res) => {
   // const { idProject } = req.body;
   const [data] = await global.db.query(`SELECT idProject, projectName FROM Project
                                             WHERE deletedFlag=0
-                                            ORDER BY idProject ASC`);
+                                            ORDER BY idProject DESC`);
   res.json({ message: "GET project - success!",
              data });
 });
@@ -150,8 +150,11 @@ app.get('/project', authenticateJWT, async (req, res) => {
 //-- ADD a Project
 app.post('/project', authenticateJWT, async function(req, res) {
   const user = req.user;
-  // console.log("User: ", user);
+  console.log("User: ", user);
+  console.log("req.body: ", req.body);
+  console.log("req.body.projectName: ", req.body);
   const { projectName } = req.body;
+  console.log('projectName: ', projectName);
   const [data] = await global.db.query(`INSERT INTO Project(
                                                             projectName, 
                                                             projectDate, 
@@ -160,7 +163,8 @@ app.post('/project', authenticateJWT, async function(req, res) {
                                                            )
                                               VALUES(?, NOW(), ?, 0)`,
                                         [projectName, user.idUser]
-  );
+                                      );
+  console.log('Backend - project data added', projectName);
   res.json({ message: "Success! Project has been added!",
   data });
 });
@@ -186,6 +190,7 @@ app.put('/project', authenticateJWT, async function(req, res) {
 app.delete('/project', authenticateJWT, async function(req, res) {
   const user = req.user;
   const { idProject } = req.body;
+  console.log('DELETE req.body: ', req.body);
   const [data] = await global.db.query(`UPDATE Project SET projectDate=NOW(),
                                                            deletedFlag=1
                                                        WHERE idUser=? AND idProject=?`,
@@ -220,7 +225,8 @@ app.get('/bug', authenticateJWT, async (req, res) => {
                                                 bg.bugDate 
                                             FROM BugTrackerDB.Bug bg
                                             LEFT JOIN Project prj ON bg.idProject=prj.idProject
-                                            WHERE bg.deletedFlag=0`);
+                                            WHERE bg.deletedFlag=0
+                                            ORDER BY prj.projectName ASC, bg.bugDate DESC`);
   res.json({ message: "GET bug - success!",
              data });
 });
