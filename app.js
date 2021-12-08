@@ -217,7 +217,9 @@ app.delete('/project', authenticateJWT, async function(req, res) {
 app.get('/bug', authenticateJWT, async (req, res) => {
   // const user = req.user;
   // const { idBug } = req.body;
-  const [data] = await global.db.query(`SELECT  prj.projectName, 
+  const [data] = await global.db.query(`SELECT  prj.projectName,
+                                                bg.idProject,
+                                                bg.idBug, 
                                                 bg.idUser, 
                                                 bg.bugTitle,
                                                 bg.bugDescription,
@@ -232,9 +234,8 @@ app.get('/bug', authenticateJWT, async (req, res) => {
 });
 
 //-- ADD a Bug
-// app.post('/bug', authenticateJWT, async function(req, res) {
-app.post('/bug', async function(req, res) {
-
+app.post('/bug', authenticateJWT, async function(req, res) {
+// app.post('/bug', async function(req, res) {
   const user = req.user;
   const { 
           idProject, 
