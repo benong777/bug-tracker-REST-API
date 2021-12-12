@@ -319,6 +319,36 @@ app.delete('/bug', authenticateJWT, async function(req, res) {
 // });
 
 
+//-- GET all comments for a bug
+app.get('/comment/:idBug', authenticateJWT, async (req, res) => {
+  const idBug = req.params.idBug;
+  console.log('req.params.idBug: ', req.params.idBug);
+  const [data] = await global.db.query(`SELECT idProject, notes, date 
+                                            FROM Comments
+                                            WHERE idBug=?
+                                            ORDER BY date DESC`,
+                                        [ idBug ]
+                                      );
+  res.json({ message: "GET comments - success!",
+             data });
+});
+
+
+// //-- GET Brands
+// app.get('/brand', async (req, res) => {
+//   const { idBrand } = req.body;
+//   // console.log('idBrand: ', idBrand);
+//   const [data] = await global.db.query(`SELECT p.idProduct, p.pName, p.pDescription, b.brandName 
+//                                             FROM ProductsDB.Product p
+//                                             LEFT JOIN Brand b ON p.idBrand=b.idBrand
+//                                             WHERE p.idBrand=?`,
+//                                             [idBrand]);
+//   res.json({ message: "GET brand - success!", 
+//              data });
+// });
+
+
+
 //-- ADD a comment
 app.post('/comment', authenticateJWT, async function(req, res) {
   const user = req.user;
@@ -409,30 +439,6 @@ app.delete('/comment', authenticateJWT, async function(req, res) {
 //                                               idBug
 //                                             ]);
 //   res.json({ message: "GET comments - success!",
-//              data });
-// });
-
-//-- GET all comments from a bug report
-app.get('/comment', async (req, res) => {
-  // const user = req.user;
-  // const { idBug } = req.body;
-  const [data] = await global.db.query(`SELECT idProject, notes, date 
-                                            FROM Comments`);
-  res.json({ message: "GET comments - success!",
-             data });
-});
-
-
-// //-- GET Brands
-// app.get('/brand', async (req, res) => {
-//   const { idBrand } = req.body;
-//   // console.log('idBrand: ', idBrand);
-//   const [data] = await global.db.query(`SELECT p.idProduct, p.pName, p.pDescription, b.brandName 
-//                                             FROM ProductsDB.Product p
-//                                             LEFT JOIN Brand b ON p.idBrand=b.idBrand
-//                                             WHERE p.idBrand=?`,
-//                                             [idBrand]);
-//   res.json({ message: "GET brand - success!", 
 //              data });
 // });
 
