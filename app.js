@@ -346,9 +346,10 @@ app.delete('/bug', authenticateJWT, async function(req, res) {
 app.get('/comment/:idBug', authenticateJWT, async (req, res) => {
   const idBug = req.params.idBug;
   console.log('req.params.idBug: ', req.params.idBug);
-  const [data] = await global.db.query(`SELECT idProject, notes, date 
-                                            FROM Comments
-                                            WHERE idBug=?
+  const [data] = await global.db.query(`SELECT c.idProject, c.notes, c.date, u.fName 
+                                            FROM BugTrackerDB.Comments c
+                                            LEFT JOIN Users u ON c.idUser=u.idUser
+                                            WHERE c.idBug=?
                                             ORDER BY date DESC`,
                                         [ idBug ]
                                       );
