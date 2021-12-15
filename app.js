@@ -1,6 +1,3 @@
-//-- Q's
-//-- Proper way to handle user undefined
-
 const express = require('express');
 const jsonwebtoken = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
@@ -48,6 +45,7 @@ const authenticateJWT = (req, res, next) => {
 //-- Connect to the database
 app.use(async (req, res, next) => {
     global.db = await mysql.createConnection({ 
+      connectionLimit: 10,
       host: process.env.DB_HOST, 
       user: process.env.DB_USER, 
       password: process.env.DB_PASSWORD, 
@@ -57,6 +55,8 @@ app.use(async (req, res, next) => {
     global.db.query(`SET time_zone = '-8:00'`);
     await next();
     // global.db.release();
+    // global.db.destroy();
+    global.db.end();
 });
 
 //-- LOGIN
@@ -232,6 +232,29 @@ app.get('/bug', authenticateJWT, async (req, res) => {
   res.json({ message: "GET bug - success!",
              data });
 });
+
+// app.get('/bug/:id', authenticateJWT, async (req, res) => {
+//   // const user = req.user;
+//   const idBug = req.params.idBug;
+//   console.log('idBug: ', idBug);
+//   const [data] = await global.db.query(`SELECT  prj.projectName,
+//                                                 bg.idProject,
+//                                                 bg.idBug, 
+//                                                 bg.idUser, 
+//                                                 bg.bugTitle,
+//                                                 bg.bugDescription,
+//                                                 bg.assignedTo, 
+//                                                 bg.bugDate 
+//                                             FROM BugTrackerDB.Bug bg
+//                                             LEFT JOIN Project prj ON bg.idProject=prj.idProject
+//                                             WHERE bg.deletedFlag=0 AND bg.idBug=?
+//                                             ORDER BY prj.projectName ASC, bg.bugDate DESC`,
+//                                         [ idBug ]
+//                                         );
+//   res.json({ message: "GET bug - success!",
+//              data });
+// });
+
 
 //-- ADD a Bug
 app.post('/bug', authenticateJWT, async function(req, res) {
