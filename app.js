@@ -136,6 +136,20 @@ app.post('/register', async function(req, res) {
     });
 });
 
+//-- GET User
+app.get('/user', authenticateJWT, async (req, res) => {
+  const user = req.user;
+  // const { idProject } = req.body;
+  const [data] = await global.db.query(`SELECT fName, lName, email 
+                                              FROM Users
+                                              WHERE deletedFlag=0 AND idUser=?`,
+                                        [ user.idUser]
+                                      );
+  res.json({ message: "GET user - success!",
+             data });
+});
+
+
 //-- GET Projects
 app.get('/project', authenticateJWT, async (req, res) => {
   // const user = req.user;
@@ -342,21 +356,6 @@ app.delete('/bug', authenticateJWT, async function(req, res) {
 // });
 
 
-//-- GET all comments for a bug
-app.get('/comment/:idBug', authenticateJWT, async (req, res) => {
-  const idBug = req.params.idBug;
-  console.log('req.params.idBug: ', req.params.idBug);
-  const [data] = await global.db.query(`SELECT c.idProject, c.notes, c.date, u.fName 
-                                            FROM BugTrackerDB.Comments c
-                                            LEFT JOIN Users u ON c.idUser=u.idUser
-                                            WHERE c.idBug=?
-                                            ORDER BY date DESC`,
-                                        [ idBug ]
-                                      );
-  res.json({ message: "GET comments - success!",
-             data });
-});
-
 
 // //-- GET Brands
 // app.get('/brand', async (req, res) => {
@@ -405,22 +404,22 @@ app.post('/comment', authenticateJWT, async function(req, res) {
 app.put('/comment', authenticateJWT, async function(req, res) {
   const user = req.user;
   // console.log('User: ', user);
-  const { idProject,
-          notes, 
-          idBug } = req.body;
-  const [data] = await global.db.query(`UPDATE Comments SET idProject=?,
-                                                       notes=?,
+  const { idComment,
+          notes} = req.body;
+  console.log('idComment: ', idComment);
+  console.log('notes: ', notes);
+  const [data] = await global.db.query(`UPDATE Comments SET notes=?,
                                                        date=NOW()
                                                 WHERE idUser=? AND
-                                                      idBug=?  AND
+                                                      idComment=? AND
                                                       deletedFlag=0`,
                                         [ 
-                                          idProject,
                                           notes, 
                                           user.idUser,
-                                          idBug
+                                          idComment
                                         ]
   );
+  console.log('Comment updated');
   res.json({ message: "Success! Comment has been updated.",
              data });
 });
@@ -450,6 +449,23 @@ app.delete('/comment', authenticateJWT, async function(req, res) {
 //   res.json({ message: "Success! Comment has been deleted",
 //              data });
 // });
+
+//-- GET all comments for a bug
+app.get('/comment/:idBug', authenticateJWT, async (req, res) => {
+  const idBug = req.params.idBug;
+  console.log('req.params.idBug: ', req.params.idBug);
+  const [data] = await global.db.query(`SELECT c.idComment, c.idProject, c.notes, c.date, u.fName 
+                                            FROM BugTrackerDB.Comments c
+                                            LEFT JOIN Users u ON c.idUser=u.idUser
+                                            WHERE c.idBug=?
+                                            ORDER BY date DESC`,
+                                        [ idBug ]
+                                      );
+  res.json({ message: "GET comments - success!",
+             data });
+});
+
+
 
 // //-- GET all comments from a bug report
 // app.get('/comment', authenticateJWT, async (req, res) => {
