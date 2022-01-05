@@ -56,7 +56,7 @@ app.use(async (req, res, next) => {
     await next();
     // global.db.release();
     // global.db.destroy();
-    global.db.end();
+    // global.db.end();
 });
 
 //-- LOGIN
@@ -120,7 +120,7 @@ app.post('/register', async function(req, res) {
                                                 fName,
                                                 lName,
                                                 email,
-                                                hash ,
+                                                hash,
                                                 deletedFlag 
                                               ]
               );
